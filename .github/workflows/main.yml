@@ -27,7 +27,7 @@ jobs:
     - name: Verify dist directory
       run: ls -al ./dist
 
-    - name: Deploy to EC2
+    - name: Install Nginx if not present
       env:
         PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
         HOST: ${{ secrets.EC2_HOST }}
@@ -40,6 +40,15 @@ jobs:
         # Add EC2 host to known_hosts
         ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
 
+        # Install and start Nginx if not installed
+        ssh $USER@$HOST "if ! command -v nginx > /dev/null; then sudo apt update && sudo apt install nginx -y && sudo systemctl enable nginx && sudo systemctl start nginx; fi"
+
+    - name: Deploy to EC2
+      env:
+        PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+        HOST: ${{ secrets.EC2_HOST }}
+        USER: ${{ secrets.EC2_USER }}
+      run: |
         # Ensure the target directory exists on EC2
         ssh $USER@$HOST "sudo mkdir -p /var/www/react-app && sudo chown -R $USER:$USER /var/www/react-app"
 
